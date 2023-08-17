@@ -2,18 +2,26 @@ package user
 
 import "gorm.io/gorm"
 
+// function yang boleh digunakan oleh instance db (struct repository)
+// untuk mengakses database
 type Repository interface {
 	Save(user User) (User, error)
+	FindByEmail(email string) (User, error)
 }
 
-type repository struct {
+// struct ini dibutuhkan untuk membuat instance database khusus untuk file repository
+type repository struct { // membuat instance db
 	db *gorm.DB
 }
+
 
 func NewRepository(db *gorm.DB) *repository {
 	return &repository{db}
 }
 
+
+// semua function dibawah adalah milik "repository" dengan catatan, 
+// nama function, parameter dan return value nya harus sesuai dengan yang di deklarasi di dalam interface Repository
 func (r *repository) Save(user User) (User, error) {
 	err := r.db.Create(&user).Error
 
@@ -21,5 +29,14 @@ func (r *repository) Save(user User) (User, error) {
 		return user, err
 	}
 
+	return user, nil
+}
+
+func (r *repository) FindByEmail(email string) (User, error) {
+	var user User
+	err := r.db.Where("email = ?", email).Find(&user).Error
+	if err != nil {
+		return user, err
+	}
 	return user, nil
 }

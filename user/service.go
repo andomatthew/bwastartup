@@ -1,15 +1,20 @@
 package user
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"errors"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 type Service interface {
 	RegisterUser(input RegisterUserInput) (User, error)
+	LoginUser(input LoginUserInput) (User, error)
 }
 
+// membuat struct service dari interface Repository,
+// dengan demikian, struct service ini mempunyai akses ke function yang di declare di dalam interface Repository
 type service struct {
 	repository Repository
-	// mapping struct input ke struct User
-	// simpan struct user melalui repository
 }
 
 func NewService(repository Repository) *service {
@@ -37,4 +42,27 @@ func (s *service) RegisterUser(input RegisterUserInput) (User, error) {
 	}
 
 	return newUser, nil
+}
+
+func (s *service) LoginUser(input LoginUserInput) (User, error) {
+	email := input.Email
+	password := input.Password
+
+	user, err := s.repository.FindByEmail(email)
+
+	if err != nil {
+		return user, err
+	}
+
+	if user.ID == 0 {
+		return user, errors.New("No user found on that email")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
