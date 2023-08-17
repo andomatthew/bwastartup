@@ -3,6 +3,7 @@ package handler
 import (
 	"bwastartup/helper"
 	"bwastartup/user"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -53,11 +54,6 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 }
 
 func (h *userHandler) Login(c *gin.Context) {
-// input user
-// input masuk ke handler, mapping input user ke input struct
-// passing input strcut ke service
-// dalam service mencari dengan bantuan repository user dengan nilai x
-// mencocokan password
 
 	var input user.LoginUserInput
 
@@ -125,7 +121,47 @@ func (h *userHandler) CheckEmailAvailability(c *gin.Context) {
 
 	response := helper.ApiResponse(metaMessage, http.StatusOK, "success", data)
 		c.JSON(http.StatusOK, response)
+}
 
+func (h *userHandler) UploadAvatar(c *gin.Context) {
+	// input dari user dalam bentuk FormData
+	// simpan gambar di folder images
+	// di service panggil repo
+	// JWT (sementara hardcode, seakan-akan user sudah login, user dengan ID 1)
+	// repo ambil data denga data user ID = 1
+	// repo update data user, simpan lokasi file
 
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.ApiResponse("Failed to upload avatar image", http.StatusBadRequest, "error", data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	// nanti didapet dari JWT
+	userID := 1
+
+	path := fmt.Sprintf("images/%d-%s", userID, file.Filename)
+
+	err = c.SaveUploadedFile(file, path)
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.ApiResponse("Failed to upload avatar image", http.StatusBadRequest, "error", data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	_, err = h.userService.SaveAvatar(userID, path)
+	if err != nil {
+		data := gin.H{"is_uploaded": false}
+		response := helper.ApiResponse("Failed to upload avatar image", http.StatusBadRequest, "error", data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	data := gin.H{"is_uploaded": true}
+		response := helper.ApiResponse("Avatar successfully uploaded", http.StatusOK, "success", data)
+		c.JSON(http.StatusOK, response)
 }
 
